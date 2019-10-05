@@ -1,18 +1,24 @@
 {
-  "name": "instagram-app",
+  "name": "pwa",
   "version": "1.0.0",
-  "description": "Building a simple Instagram app with PWA features",
+  "description": "Building a simple Instagram clone.",
   "main": "index.js",
   "scripts": {
-    "start": "http-server -c-1"
+    "start": "http-server -c-1",
+    "generate-sw": "workbox inject:manifest",
+    "build": "npm run generate-sw"
   },
   "keywords": [
     "pwa",
-    "progressive"
+    "progressive",
+    "web",
+    "app"
   ],
   "author": "Ram Singh",
   "license": "ISC",
   "devDependencies": {
-    "http-server": "^0.10.0"
+    "http-server": "^0.10.0",
+    "uglify-js": "^3.0.28",
+    "workbox-cli": "^2.0.0"
   }
 }
