@@ -20,11 +20,12 @@ const reqHeader = {
   'Accept': 'application/json'
 }
 function deleteCard(event) {
-  let documentKey =  event.target.getAttribute('key');
+  const documentKey =  event.target.getAttribute('key');
+  const imageId = event.target.getAttribute('imageid');
   fetch(API.deletePost, {
     method: 'POST',
     headers: reqHeader,
-    body: JSON.stringify({key: documentKey})
+    body: JSON.stringify({key: documentKey, imageId})
   })
   .then(function (res) {
       console.log('card deleted..', res);
@@ -192,6 +193,7 @@ function createCard(data) {
   cardDeleteElement.className = 'mdl-card__delete';
   cardDeleteElement.textContent = 'X';
   cardDeleteElement.setAttribute('key', data.key);
+  cardDeleteElement.setAttribute('imageid', data.id);
   cardDeleteElement.addEventListener('click', deleteCard);
   cardWrapper.appendChild(cardDeleteElement);
 

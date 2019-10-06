@@ -2,7 +2,7 @@ var functions = require("firebase-functions");
 var admin = require("firebase-admin");
 var cors = require("cors");
 var webpush = require("web-push");
-var formidable = require("formidable");
+// var formidable = require("formidable");
 var fs = require("fs");
 var UUID = require("uuid-v4");
 var os = require("os");
@@ -11,8 +11,6 @@ var path = require('path');
 
 const express = require('express');
 const app = express();
-
-
 
 // for parsing application/xwww-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
@@ -48,7 +46,7 @@ exports.storePostData = functions.https.onRequest(function(request, response) {
   });
 });
 
-app.post('/savePost', (request, response) => { 
+app.post('/savePost', (request, response) => {
   var uuid = UUID();
     const busboy = new Busboy({ headers: request.headers });
     // These objects will store the values (file + fields) extracted from busboy
@@ -85,38 +83,39 @@ app.post('/savePost', (request, response) => {
           }
         },
         function(err, uploadedFile) {
-          if (!err) {
-            admin.database().ref("posts").push({
-                                                id: fields.id,
-                                                title: fields.title,
-                                                location: fields.location,
-                                                rawLocation: {
-                                                              lat: fields.rawLocationLat,
-                                                              lng: fields.rawLocationLng
-                                                            },
-                                                image: "https://firebasestorage.googleapis.com/v0/b/" + bucket.name + "/o/" +
-                                                            encodeURIComponent(uploadedFile.name) +"?alt=media&token=" + uuid
-              }).then(function() {
-                return sendPushNotification(response);
-              });
-                    
-          } else {
-            return response.status(500).json({ error: err });
-          }
+            if (!err) {
+              admin.database().ref("posts").push({
+                                                  id: fields.id,
+                                                  title: fields.title,
+                                                  location: fields.location,
+                                                  rawLocation: {
+                                                                lat: fields.rawLocationLat,
+                                                                lng: fields.rawLocationLng
+                                                              },
+                                                  image: "https://firebasestorage.googleapis.com/v0/b/" + bucket.name + "/o/" +
+                                                              encodeURIComponent(uploadedFile.name) +"?alt=media&token=" + uuid
+                }).then(function() {
+                  sendPushNotification();
+                  return response.status(201).json({ message: "Post saved in server", id: fields.id });
+                });
+                      
+            } else {
+              return response.status(500).json({ error: err });
+            }
         }
       );
     });
     busboy.end(request.rawBody);
 });
 app.post('/deletePost', (req, res) => {
-  const key = req.body.key;
+      const {key, imageId}  = req.body;
       console.log('deletePost:', key);
       admin.database().ref(`posts/${key}`).remove().then(function() {
-        console.log("Post successfully deleted!");
+        deletePhotos(imageId);
         return res.status(201).json({ message: "Post successfully deleted!"});
       }).catch(function(error) {
           console.error("Error removing document: ", error);
-          return res.status(500).json({ error: err });
+          return res.status(500).json({ error: error });
       });
 });
 
@@ -129,13 +128,23 @@ app.post('/directSavePost', (req, res) => {
                                             image: "XXX"
     }).then(function() {
         console.log("Post successfully saved directly in server");
-        return sendPushNotification(res);
+        sendPushNotification();
+        return response.status(201).json({ message: "Post successfully saved directly in server", id: req.body.id });
       }).catch(function(error) {
-          console.error("Error in direct saving document: ", error);
-          return res.status(500).json({ error: err });
+          console.error("Error in direct saving of document: ", error);
+          return res.status(500).json({ error: error });
       });
 });
-function sendPushNotification(response){
+function deletePhotos(imageId) {
+  const imageName = imageId +'.png';
+  const bucket = gcs.bucket(`${PROJECT_ID}.appspot.com`);
+
+  return bucket.deleteFiles({ prefix: imageName})
+  .then(() => {
+    console.log('image deleted successfully..', imageName);
+  }).catch(error => console.log(error));
+} 
+function sendPushNotification(){
   webpush.setVapidDetails(  "mailto:ram.singh.akg@gmail.com",
                             "BKapuZ3XLgt9UZhuEkodCrtnfBo9Smo-w1YXCIH8YidjHOFAU6XHpEnXefbuYslZY9vtlEnOAmU7Mc-kWh4gfmE",
                             "AyVHwGh16Kfxrh5AU69E81nVWIKcUwR6a9f1X4zXT_s"
@@ -156,14 +165,9 @@ function sendPushNotification(response){
                                                                           content: "New Post added!",
                                                                           openUrl: "https://www.globallogic.com/"
                                                                         })
-                    ).catch(function(err) {
-                        return response.status(500).json({ error: err });
-                    });
+                    ).catch(error => console.log(error));
                 });
-                return response.status(201).json({ message: "Data stored", id: fields.id });
-              }).catch(function(err) {
-                return response.status(500).json({ error: err });
-              });
+              }).catch(error => console.log(error));
 }
 // Expose Express API as a single Cloud Function:
 exports.api = functions.https.onRequest(app);
