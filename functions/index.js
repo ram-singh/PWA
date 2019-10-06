@@ -44,8 +44,7 @@ admin.initializeApp({
 
 exports.storePostData = functions.https.onRequest(function(request, response) {
   cors(request, response, function() {
-    
-    
+    // export functions...
   });
 });
 
@@ -98,36 +97,9 @@ app.post('/savePost', (request, response) => {
                                                 image: "https://firebasestorage.googleapis.com/v0/b/" + bucket.name + "/o/" +
                                                             encodeURIComponent(uploadedFile.name) +"?alt=media&token=" + uuid
               }).then(function() {
-                    webpush.setVapidDetails(  "mailto:ram.singh.akg@gmail.com",
-                                              "BKapuZ3XLgt9UZhuEkodCrtnfBo9Smo-w1YXCIH8YidjHOFAU6XHpEnXefbuYslZY9vtlEnOAmU7Mc-kWh4gfmE",
-                                              "AyVHwGh16Kfxrh5AU69E81nVWIKcUwR6a9f1X4zXT_s"
-                    );
-                    return admin.database().ref("subscriptions").once("value");
-              })
-              .then(function(subscriptions) {
-                subscriptions.forEach(function(sub) {
-                  var pushConfig = {
-                    endpoint: sub.val().endpoint,
-                    keys: {
-                            auth: sub.val().keys.auth,
-                            p256dh: sub.val().keys.p256dh
-                          }
-                  };
-
-                  webpush.sendNotification(pushConfig, JSON.stringify({
-                                                                        title: "New Post",
-                                                                        content: "New Post added!",
-                                                                        openUrl: "https://www.globallogic.com/"
-                                                                      })
-                    ).catch(function(err) {
-                      return response.status(500).json({ error: err });
-                    });
-                });
-                return response.status(201).json({ message: "Data stored", id: fields.id });
-              })
-              .catch(function(err) {
-                return response.status(500).json({ error: err });
+                return sendPushNotification(response);
               });
+                    
           } else {
             return response.status(500).json({ error: err });
           }
@@ -148,5 +120,50 @@ app.post('/deletePost', (req, res) => {
       });
 });
 
+app.post('/directSavePost', (req, res) => {
+      console.log('directSavePost:', req.body.id);
+      admin.database().ref(`posts`).push({
+                                            id: req.body.id,
+                                            title: req.body.title,
+                                            location: req.body.location,
+                                            image: "XXX"
+    }).then(function() {
+        console.log("Post successfully saved directly in server");
+        return sendPushNotification(res);
+      }).catch(function(error) {
+          console.error("Error in direct saving document: ", error);
+          return res.status(500).json({ error: err });
+      });
+});
+function sendPushNotification(response){
+  webpush.setVapidDetails(  "mailto:ram.singh.akg@gmail.com",
+                            "BKapuZ3XLgt9UZhuEkodCrtnfBo9Smo-w1YXCIH8YidjHOFAU6XHpEnXefbuYslZY9vtlEnOAmU7Mc-kWh4gfmE",
+                            "AyVHwGh16Kfxrh5AU69E81nVWIKcUwR6a9f1X4zXT_s"
+                          );
+   return admin.database().ref("subscriptions").once("value")
+        .then(function(subscriptions) {
+                subscriptions.forEach(function(sub) {
+                    var pushConfig = {
+                      endpoint: sub.val().endpoint,
+                      keys: {
+                              auth: sub.val().keys.auth,
+                              p256dh: sub.val().keys.p256dh
+                            }
+                    };
+                    console.log('sending notifications...');
+                    webpush.sendNotification(pushConfig, JSON.stringify({
+                                                                          title: "New Post",
+                                                                          content: "New Post added!",
+                                                                          openUrl: "https://www.globallogic.com/"
+                                                                        })
+                    ).catch(function(err) {
+                        return response.status(500).json({ error: err });
+                    });
+                });
+                return response.status(201).json({ message: "Data stored", id: fields.id });
+              }).catch(function(err) {
+                return response.status(500).json({ error: err });
+              });
+}
 // Expose Express API as a single Cloud Function:
 exports.api = functions.https.onRequest(app);

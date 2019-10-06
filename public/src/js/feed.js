@@ -259,23 +259,34 @@ if ('indexedDB' in window) {
 
 function sendData() {
   var id = new Date().toISOString();
-  var postData = new FormData();
-  postData.append('id', id);
-  postData.append('title', titleInput.value);
-  postData.append('location', locationInput.value);
-  postData.append('rawLocationLat', fetchedLocation.lat);
-  postData.append('rawLocationLng', fetchedLocation.lng);
-  postData.append('file', picture, id + '.png');
 
-  fetch(API.savePost, {
-    method: 'POST',
-    headers: reqHeader,
-    body: postData
-  })
-  .then(function (res) {
-      console.log('Sent data', res);
-      updateUI(res);
-  })
+  if(!picture){
+    console.log('saving directly...')
+    fetch(API.directSavePost, {
+      method: 'POST',
+      headers: reqHeader,
+      body: JSON.stringify({ id: id, title: titleInput.value, location: locationInput.value})
+    }).then(function (res) {
+        alert('Post saved directly in server');
+    });
+  } else {
+    var postData = new FormData();
+    postData.append('id', id);
+    postData.append('title', titleInput.value);
+    postData.append('location', locationInput.value);
+    postData.append('rawLocationLat', fetchedLocation.lat);
+    postData.append('rawLocationLng', fetchedLocation.lng);
+    postData.append('file', picture, id + '.png');
+    fetch(API.savePost, {
+      method: 'POST',
+      headers: reqHeader,
+      body: postData
+    }).then(function (res) {
+        console.log('Sent data', res);
+        updateUI(res);
+    })
+  }
+  
 }
 
 form.addEventListener('submit', function (event) {
@@ -287,13 +298,10 @@ form.addEventListener('submit', function (event) {
   }
 
   closeCreatePostModal();
-
+  if(!picture) {return sendData();}
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     navigator.serviceWorker.ready
       .then(function (sw) {
-        if(!picture) {
-          picture = new Blob(['<h1> Hi </h1>'], {type: 'text/html'}) // if image has not captured then dummy 
-        }
         var post = {
           id: new Date().toISOString(),
           title: titleInput.value,
@@ -301,6 +309,7 @@ form.addEventListener('submit', function (event) {
           picture: picture,
           rawLocation: fetchedLocation
         };
+        
         writeData('sync-posts', post)
           .then(function () {
             return sw.sync.register('sync-new-posts');

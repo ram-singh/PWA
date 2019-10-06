@@ -4,5 +4,6 @@ var API = {
     getPosts: firebaseDB+'/posts.json',
     saveSubscription: firebaseDB+'/subscriptions.json',
     savePost: firebaseFunction+'/api/savePost',
-    deletePost: firebaseFunction+'/api/deletePost'
+    deletePost: firebaseFunction+'/api/deletePost',
+    directSavePost: firebaseFunction+'/api/directSavePost'
 };

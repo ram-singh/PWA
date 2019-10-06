@@ -1,6 +1,3 @@
-
-
-
 importScripts('workbox-sw.prod.v2.0.0.js');
 importScripts('/src/js/config.js');
 importScripts('/src/js/idb.js');
