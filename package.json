@@ -17,7 +17,7 @@
   "author": "Ram Singh",
   "license": "ISC",
   "devDependencies": {
-    "http-server": "^0.10.0",
+    "http-server": "^14.1.1",
     "uglify-js": "^3.0.28",
     "workbox-cli": "^2.0.0"
   }
